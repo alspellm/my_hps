@@ -669,7 +669,7 @@ def Make2DRatio(name, outdir, histo1, histo2, xtitle="", ytitle="", ztitle="", r
     can.SaveAs(outdir+"/"+name+oFext)
 
 
-def Make2DPlots(name, outdir, histolist, xtitle, ytitle, ztitle="", text="", zmin="", zmax=""):
+def Make2DPlots(name, outdir, histolist, xtitle, ytitle, ztitle="", text="", zmin="", zmax="", save=False):
     oFext = ".pdf"
     if not os.path.exists(outdir):
         os.mkdir(outdir)
@@ -701,7 +701,8 @@ def Make2DPlots(name, outdir, histolist, xtitle, ytitle, ztitle="", text="", zmi
 
         #print "saving..."
         #if (len(legends) == len(histolist)):
-        can.SaveAs(outdir+"/"+name[ih]+oFext)
+        if save:
+            can.SaveAs(outdir+"/"+name[ih]+oFext)
         canvs.append(can)
     return deepcopy(canvs)
     #else:

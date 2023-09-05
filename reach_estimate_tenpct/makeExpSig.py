@@ -1,9 +1,11 @@
 #/bin/env python
+import sys
+sys.path.append( '/sdf/group/hps/users/alspellm/projects/THESIS/ana/analysis_scripts/plot_utils')
+import my_plot_utils as utils
 import math
 import glob
 import numpy as np
 import ROOT as r
-import utilities as utils
 import copy
 from optparse import OptionParser
 from SimpEquations import SimpEquations
@@ -28,6 +30,27 @@ def vtxRes(mass):
 def massRes(mass):
     res = 1.06314 + 3.45955e-02*mass + -6.62113e-05*pow(mass,2) # 2016 simps kf 11/15/22
     return res
+
+def countDiffBackgroundData(m_Ap, infile_data, tree_name, massRes):
+    dNdm = 0.0
+    datafile = r.TFile("%s"%(infile_data),"READ")
+    tree = datafile.Get("%s/%s_tree"%(tree_name,tree_name))
+    tree.SetName("data_%s_tree"%(tree_name))
+    print("Counting background rate")
+    Mbin = 30.0
+    for ev in tree:
+        if 1000.0*ev.unc_vtx_mass > m_Ap + (Mbin/2): continue
+        if 1000.0*ev.unc_vtx_mass < m_Ap - (Mbin/2): continue
+        dNdm += 1.0
+        pass
+
+    datafile.Close()
+
+    dNdm = dNdm/Mbin
+    print("Background Rate: %f"%dNdm)
+
+    return dNdm
+
 
 def countDiffBackgroundMC(m_Ap, infile_tritrig, infile_wab, tree_name, tritrig_mcScale, wab_mcScale, massRes):
     
@@ -60,13 +83,24 @@ def countDiffBackgroundMC(m_Ap, infile_tritrig, infile_wab, tree_name, tritrig_m
     print("Background Rate: %f"%dNdm)
     return dNdm
 
+#This cut is a good first high-z background cut, helps get more realistic zcut
+def pass_abs_delta_z0tanlambda(ele_z0, ele_tanlambda, pos_z0, pos_tanlambda, cut_value):
+    value = abs((ele_z0/ele_tanlambda) - (pos_z0/pos_tanlambda) )
+    if value < cut_value:
+        return True
+    else:
+        return False
+
+#Suppress plots
+r.gROOT.SetBatch(1)
+
 #2016 Lumi from Golden runs
 Lumi = 10.7 #1/pb
 mcScale = {}
 mcScale['tritrig'] = 1.416e9*Lumi/(50000*9853) #pb2016
 mcScale['wab'] = 0.1985e12*Lumi/(100000*9966) #pb2016
 
-utils.SetStyle()
+#utils.SetStyle()
 
 parser = OptionParser()
 
@@ -86,8 +120,9 @@ outFile = r.TFile(options.outputFile,"RECREATE")
 zCutVals = []
 dNdms = []
 #MC Generated Dark Vector Masses
-invMasses = [40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 105, 110, 115, 120, 125, 130, 135, 140, 145, 150, 155, 160, 165, 170, 175, 180, 185, 190, 195, 200]
-#invMasses = [40, 50, 60, 70, 80]
+#invMasses = [40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 105, 110, 115, 120, 125, 130, 135, 140, 145, 150, 155, 160, 165, 170, 175, 180, 185, 190, 195, 200]
+invMasses = [40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 105, 110, 115, 120, 125, 130, 135, 140, 145, 150, 155, 160]
+#invMasses = [40, 50, 60, 70, 80, 200]
 
 #Simp Equations Config
 year = 2016
@@ -103,15 +138,13 @@ simpeqs = SimpEquations(year, alpha_dark, mass_ratio_Ap_to_Vd, mass_ratio_Ap_to_
 ap_invMasses = [round(x*(mass_ratio_Ap_to_Vd),1) for x in invMasses]
 
 #Read zcuts from file if specified
-'''
 zcuts = {}
 zcutFile = open(options.zcutFile,"r")
 for line in zcutFile:
     lineList = line.split()
     zcuts[float(lineList[0])] = float(lineList[1])
     pass
-#print(zcuts)
-'''
+print(zcuts)
 
 #Initialize Histograms
 nMasses = len(ap_invMasses)
@@ -196,10 +229,11 @@ for m_Vd in invMasses:
     vdSimZ_h.Write()
 
     #Next count the differential background rate in 1 MeV bin
+    infile_data = '/sdf/group/hps/users/alspellm/projects/THESIS/data/2016/BLPass4_rereco_20230823/ana_20230823/output/final_hadd_data_BLPass4_ReRecon_20230828.root'
     infile_tritrig = '/sdf/group/hps/users/alspellm/projects/THESIS/mc/2016/tritrig_beam/pass4_2016_mc/rerecon_kf_v5_1/simps_2016_kf/final_hadd_tritrigv2-beamv6_2500kBunches_HPS-PhysicsRun2016-Pass2_v4_5_0_pairs1_976_KF_CR.root'
     infile_wab = '/sdf/group/hps/users/alspellm/projects/THESIS/mc/2016/wab_beam/pass4_2016_mc/rerecon_kf_v5_1/simps_2016_kf/final_hadd_wabv3-beamv6_2500kBunches_HPS-PhysicsRun2016-Pass2_v4_5_0_pairs1_KF_ana_CR.root'
-    dNdm = countDiffBackgroundMC(m_Ap, infile_tritrig, infile_wab,"vtxana_kf_vertexSelection_Tight_CR", mcScale['tritrig'], mcScale['wab'],
-            massRes(float(m_Vd)))
+    #dNdm = countDiffBackgroundMC(m_Ap, infile_tritrig, infile_wab,"vtxana_kf_vertexSelection_Tight_CR", mcScale['tritrig'], mcScale['wab'],
+    dNdm = countDiffBackgroundData(m_Ap, infile_data,"vtxana_kf_Tight_2016_simp_reach_CR",massRes(float(m_Vd)))
     dNdms.append(dNdm)
 
     #Next get flat tuple from anaVtx and fill eff_vtx numerator
@@ -210,8 +244,8 @@ for m_Vd in invMasses:
     #zCut = 69.2555 + -0.916318*m_vdF + 0.00504772*m_vdF*m_vdF + -1.04964e-05*pow(m_vdF,3) #simp kf 11/15/22
     #zCut = 72.6454 + -1.08843*m_vdF + 0.00676883*m_vdF*m_vdF + -1.52583e-05*pow(m_vdF,3) #simp gbl old
     #zCut = 9.71425 + -0.140865*m_vdF + 0.000441817*math.pow(m_vdF,2) + -4.73974e-07*math.pow(m_vdF,3) #GBL
-    zCut = 69.2555 + -0.916318*float(m_Vd) + 0.00504772*float(m_Vd)*float(m_Vd) + -1.04964e-05*pow(float(m_Vd),3) #simp kf 11/15/22
-    #zCut = zcuts[m_vdF] 
+    #zCut = 69.2555 + -0.916318*float(m_Vd) + 0.00504772*float(m_Vd)*float(m_Vd) + -1.04964e-05*pow(float(m_Vd),3) #simp kf 11/15/22
+    zCut = zcuts[m_Vd] 
     zCutVals.append(zCut)
     vdSelZ_h = r.TH1F("vdSelZ%i_h"%m_Vd, ";true z_{vtx} [mm];MC Events", 200, -50.3, 149.7)
     vdSelNoZ_h = r.TH1F("vdSelNoZ%i_h"%m_Vd, ";true z_{vtx} [mm];MC Events", 200, -50.3, 149.7)
@@ -225,6 +259,12 @@ for m_Vd in invMasses:
         if 1000.0*ev.unc_vtx_mass > highMass: continue
         if 1000.0*ev.unc_vtx_mass < lowMass: continue
         vd_energy_h.Fill(ev.vd_true_vtx_energy)
+       
+        #Apply high-z cut used to set the zcut values 08/31/2023
+        if pass_abs_delta_z0tanlambda(ev.unc_vtx_ele_track_z0, ev.unc_vtx_ele_track_tanLambda, 
+                ev.unc_vtx_pos_track_z0, ev.unc_vtx_pos_track_tanLambda, 50.0) == False:
+            continue
+
         if ev.vd_true_vtx_z > 135.0: continue
         vdSelNoZ_h.Fill(ev.vd_true_vtx_z)
         if ev.unc_vtx_z < zCut: continue
@@ -378,7 +418,7 @@ if(len(exContourEps) > 0):
     excContour_g.SetName("excContour_Lumi_%s_g"%str(Lumi))
     excContour_g.Write()
 
-zCuts_g = r.TGraph(len(ap_invMasses), np.array([float(x) for x in ap_invMasses]), np.array(zCutVals))
+zCuts_g = r.TGraph(len(invMasses), np.array([float(x) for x in invMasses]), np.array(zCutVals))
 zCuts_g.SetName("zCuts_g")
 zCuts_g.Write()
 
@@ -386,15 +426,41 @@ dNdm_g = r.TGraph(len(ap_invMasses), np.array([float(x) for x in ap_invMasses]),
 dNdm_g.SetName("dNdm_g")
 dNdm_g.Write()
 
-apProd_hh.Write()
-Nsig_hh.Write()
-gcTau_rho_hh.Write()
-gcTau_phi_hh.Write()
-effVtx_rho_hh.Write()
-effVtx_phi_hh.Write()
-Nsig_vd_hh.Write()
-Nsig_rho_hh.Write()
-Nsig_phi_hh.Write()
-effVtx_rho_vd_hh.Write()
-effVtx_phi_vd_hh.Write()
+
+#Format Plots
+write_text = ["2016 MC Reach Estimate","Tritrig+WAB+Beam Scaled Lumi %s"%(str(Lumi)),"aD=%s"%(str(alpha_dark))]
+c_apProd = utils.Make2DPlot(apProd_hh.GetName(), apProd_hh, apProd_hh.GetXaxis().GetTitle(), apProd_hh.GetYaxis().GetTitle(), insertText=write_text)
+c_Nsig = utils.Make2DPlot(Nsig_hh.GetName(), Nsig_hh, Nsig_hh.GetXaxis().GetTitle(), Nsig_hh.GetYaxis().GetTitle(), insertText=write_text)
+c_gcTau_rho = utils.Make2DPlot(gcTau_rho_hh.GetName(), gcTau_rho_hh, gcTau_rho_hh.GetXaxis().GetTitle(), gcTau_rho_hh.GetYaxis().GetTitle(), insertText=write_text)
+c_gcTau_phi = utils.Make2DPlot(gcTau_phi_hh.GetName(), gcTau_phi_hh, gcTau_phi_hh.GetXaxis().GetTitle(), gcTau_phi_hh.GetYaxis().GetTitle(), insertText=write_text)
+c_effVtx_rho = utils.Make2DPlot(effVtx_rho_hh.GetName(), effVtx_rho_hh, effVtx_rho_hh.GetXaxis().GetTitle(), effVtx_rho_hh.GetYaxis().GetTitle(), insertText=write_text)
+c_effVtx_phi = utils.Make2DPlot(effVtx_phi_hh.GetName(), effVtx_phi_hh, effVtx_phi_hh.GetXaxis().GetTitle(), effVtx_phi_hh.GetYaxis().GetTitle(), insertText=write_text)
+c_Nsig_vd = utils.Make2DPlot(Nsig_vd_hh.GetName(), Nsig_vd_hh, Nsig_vd_hh.GetXaxis().GetTitle(), Nsig_vd_hh.GetYaxis().GetTitle(), insertText=write_text)
+c_Nsig_rho = utils.Make2DPlot(Nsig_rho_hh.GetName(), Nsig_rho_hh, Nsig_rho_hh.GetXaxis().GetTitle(), Nsig_rho_hh.GetYaxis().GetTitle(), insertText=write_text)
+c_Nsig_phi = utils.Make2DPlot(Nsig_phi_hh.GetName(), Nsig_phi_hh, Nsig_phi_hh.GetXaxis().GetTitle(), Nsig_phi_hh.GetYaxis().GetTitle(), insertText=write_text)
+c_effVtx_rho_vd = utils.Make2DPlot(effVtx_rho_vd_hh.GetName(), effVtx_rho_vd_hh, effVtx_rho_vd_hh.GetXaxis().GetTitle(), effVtx_rho_vd_hh.GetYaxis().GetTitle(), insertText=write_text)
+c_effVtx_phi_vd = utils.Make2DPlot(effVtx_phi_vd_hh.GetName(), effVtx_phi_vd_hh, effVtx_phi_vd_hh.GetXaxis().GetTitle(), effVtx_phi_vd_hh.GetYaxis().GetTitle(), insertText=write_text)
+
+c_apProd.Write()
+c_Nsig.Write()
+c_gcTau_rho.Write()
+c_gcTau_phi.Write()
+c_effVtx_rho.Write()
+c_effVtx_phi.Write()
+c_Nsig_vd.Write()
+c_Nsig_rho.Write()
+c_Nsig_phi.Write()
+c_effVtx_rho_vd.Write()
+c_effVtx_phi_vd.Write()
+#apProd_hh.Write()
+#Nsig_hh.Write()
+#gcTau_rho_hh.Write()
+#gcTau_phi_hh.Write()
+#effVtx_rho_hh.Write()
+#effVtx_phi_hh.Write()
+#Nsig_vd_hh.Write()
+#Nsig_rho_hh.Write()
+#Nsig_phi_hh.Write()
+#effVtx_rho_vd_hh.Write()
+#effVtx_phi_vd_hh.Write()
 outFile.Close()

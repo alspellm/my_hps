@@ -9,7 +9,7 @@ SLURM_TEMPLATE = """#!/bin/bash
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1
-#SBATCH --mem=4000M
+#SBATCH --mem=8000M
 #SBATCH --partition=hps
 #SBATCH --array=0-{num_jobs}
 
@@ -18,13 +18,13 @@ echo "Job started at $(date)"
 # Load any necessary modules or set up environment variables here
 source /sdf/home/a/alspellm/.bashrc
 
+# Define the input file containing the list of files
+input_file=$(readlink -f {input_textfile})
+
 # Set the working directory
 working_dir=$(readlink -f {working_dir})
 mkdir -p "$working_dir"
 cd $working_dir
-
-# Define the input file containing the list of files
-input_file=$(readlink -f {input_textfile})
 
 # Read the list of files into an array
 mapfile -t input_files < "$input_file"

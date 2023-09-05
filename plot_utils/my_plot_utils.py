@@ -59,8 +59,11 @@ def SetStyle():
     hpsStyle.SetLabelSize(tzsize, "z")
     hpsStyle.SetTitleSize(tzsize, "z")
 
-    hpsStyle.SetTitleOffset(0.7, "y")
-    hpsStyle.SetTitleOffset(1.15, "x")
+    #hpsStyle.SetTitleOffset(0.7, "y")
+    #hpsStyle.SetTitleOffset(1.15, "x")
+
+    #hpsStyle.SetTitleOffset(0.7, "y")
+    #hpsStyle.SetTitleOffset(1.15, "x")
 #use bold lines and markers
     #hpsStyle.SetMarkerStyle(20)
     hpsStyle.SetMarkerSize(1.0)
@@ -71,7 +74,7 @@ def SetStyle():
 #hpsStyle.SetErrorX(0.001)
 
 #do not display any of the standard histogram decorations
-    hpsStyle.SetOptTitle(0)
+    hpsStyle.SetOptTitle(1)
 #hpsStyle.SetOptStat(1111)
     hpsStyle.SetOptStat(0)
 #hpsStyle.SetOptFit(1111)
@@ -81,13 +84,13 @@ def SetStyle():
     hpsStyle.SetPadTickX(1)
     hpsStyle.SetPadTickY(1)
 
-    r.gROOT.SetStyle("Plain")
+    #r.gROOT.SetStyle("Plain")
 
 #gStyle.SetPadTickX(1)
 #gStyle.SetPadTickY(1)
     r.gROOT.SetStyle("HPS")
     r.gROOT.ForceStyle()
-    r.gStyle.SetOptTitle(0)
+    r.gStyle.SetOptTitle(1)
     r.gStyle.SetOptStat(0)
     r.gStyle.SetOptFit(0)
 
@@ -110,33 +113,29 @@ def SetStyle():
     r.gStyle.SetNumberContours(NCont)
 
 
+def InsertText(insertText=[], text_x=0.3, text_y=0.9, line_spacing=0.03, text_size=0.025, Hps=True):
 
-def InsertText(runNumber="", texts=[], line=0.87, xoffset=0.18, Hps=True, Colors=False):
+    drawText = insertText
 
-    newline = 0.06
+    latex = r.TLatex()
+    latex.SetTextFont(42)
+    latex.SetTextSize(text_size)
+    latex.SetTextAlign(12)
+    latex.SetTextColor(r.kBlack)
 
-    text = r.TLatex()
-    text.SetNDC()
-    text.SetTextFont(42)
-    text.SetTextSize(0.05)
-    text.SetTextColor(r.kBlack)
     if (Hps):
-        text.DrawLatex(xoffset, line, '#bf{#it{HPS}} Internal')
-    if runNumber:
-        line = line-newline
-        if "MC" in runNumber:
-            text.DrawLatex(xoffset, line, "MC Simulation")
-        else:
-            #text.DrawLatex(xoffset,line,"Run "+runNumber)
-            text.DrawLatex(xoffset, line, runNumber)
-    for iText in range(len(texts)):
-        if texts[iText]:
-            line = line-newline
-            if (Colors):
-                text.SetTextColor(colors[iText])
-            text.DrawLatex(xoffset, line, texts[iText])
+        latex.DrawLatexNDC(text_x, text_y,'#bf{#it{HPS}} Internal')
+        text_y = text_y - line_spacing
 
-    return line
+    for line in drawText:
+        latex.DrawLatexNDC(text_x, text_y,line)
+        text_y = text_y - line_spacing
+
+    #text = r.TLatex()
+    #text.SetNDC()
+    #text.SetTextFont(42)
+    #text.SetTextSize(0.05)
+    #text.SetTextColor(r.kBlack)
 
 def read_2d_plots_from_root_file_dirs(file_path, root_dir_key="",keyword=""):
     # List to store the matching 1D plots
@@ -227,11 +226,6 @@ def read_1d_plots_from_root_file_dirs(file_path, root_dir_key="", keyword=""):
     # Open the ROOT file
     root_file = r.TFile.Open(file_path)
 
-    # Check if the file is open
-    if not root_file.IsOpen():
-        print(f"Failed to open ROOT file: {file_path}")
-        return []
-
     #Loop over all directories matching key
     for dir_key in root_file.GetListOfKeys():
         dir_obj = dir_key.ReadObj()
@@ -269,12 +263,7 @@ def read_1d_plots_from_root_file_dirs(file_path, root_dir_key="", keyword=""):
 
 def read_plot_from_root_file(file_path, name, root_dir=""):
     # Open the ROOT file
-    root_file = r.TFile.Open(file_path)
-
-    # Check if the file is open
-    if not root_file.IsOpen():
-        print(f"Failed to open ROOT file: {file_path}")
-        return []
+    root_file = r.TFile(file_path)
 
     # Get the directory within the ROOT file
     root_dir = root_file.GetDirectory(root_dir)
@@ -286,6 +275,8 @@ def read_plot_from_root_file(file_path, name, root_dir=""):
         return None
 
     plot = copy.deepcopy(root_dir.Get("%s"%(name)))
+
+    root_file.Close()
 
     return plot
 
@@ -329,8 +320,8 @@ def read_1d_plots_from_root_file(file_path, root_dir="", keyword=""):
     return plots
 
 def format_TH1(histogram, name=None, title=None, x_label=None, y_label=None,
-                               line_width=None, line_color=None, marker_style=None,
-                               marker_size=None, line_style=None):
+        line_width=None, line_color=None, marker_style=None,
+        marker_size=None, line_style=None):
     if name is not None:
         histogram.SetName(name)
     if title is not None:
@@ -350,6 +341,23 @@ def format_TH1(histogram, name=None, title=None, x_label=None, y_label=None,
     if line_style is not None:
         histogram.SetLineStyle(line_style)
 
+    #histogram.GetXaxis().SetTitle(xtitle)
+    #histogram.GetXaxis().SetTitleSize(
+    #    histogram.GetXaxis().GetTitleSize()*0.7)
+    #histogram.GetXaxis().SetLabelSize(
+    #    histogram.GetXaxis().GetLabelSize()*0.75)
+    #histogram.GetXaxis().SetTitleOffset(
+    #    histogram.GetXaxis().GetTitleOffset()*0.8)
+
+    #histogram.GetYaxis().SetTitleSize(
+    #    histogram.GetYaxis().GetTitleSize()*0.7)
+    #histogram.GetYaxis().SetLabelSize(
+    #    histogram.GetYaxis().GetLabelSize()*0.75)
+    #histogram.GetYaxis().SetTitleOffset(
+    #    histogram.GetYaxis().GetTitleOffset()*1.7)
+    #histogram.GetYaxis().SetTitle(ytitle)
+
+
 def getMarkersHPS():
     markers = [r.kFullCircle, r.kFullTriangleUp, r.kFullSquare, r.kOpenSquare, r.kOpenTriangleUp, r.kOpenCircle, r.kFullCircle, r.kOpenSquare, r.kFullSquare, r.kOpenTriangleUp, r.kOpenCircle, r.kFullCircle, r.kOpenSquare, r.kFullSquare, r.kOpenTriangleUp, r.kOpenCircle, r.kFullCircle, r.kOpenSquare, r.kFullSquare, r.kOpenTriangleUp, r.kOpenCircle, r.kFullCircle, r.kOpenSquare, r.kFullSquare, r.kOpenTriangleUp, r.kOpenCircle, r.kFullCircle, r.kOpenSquare, r.kFullSquare, r.kOpenTriangleUp]
     return markers
@@ -364,17 +372,17 @@ def getColors():
 
     # List of colors to choose from
     available_colors = [
-        r.kBlack,
-        r.kBlue,
-        r.kRed,
-        r.kGreen,
-        r.kMagenta,
-        r.kOrange,
-        r.kTeal,
-        r.kSpring,
-        r.kGray,
-    ]
-    
+            r.kBlack,
+            r.kBlue,
+            r.kRed,
+            r.kGreen,
+            r.kMagenta,
+            r.kOrange,
+            r.kTeal,
+            r.kSpring,
+            r.kGray,
+            ]
+
     for color in available_colors:
         colors.append(color)
 
@@ -472,7 +480,8 @@ def plot_TH1s_with_legend(histograms, canvas_name, save_directory,setStats=False
     canvas.SaveAs(file_name)
 
     # Clean up
-    canvas.Close()
+    #canvas.Close()
+    return canvas
 
 def plot_TH1_ratios_with_legend(histograms, numerators, denominators, ratioNames, ratioColors, canvas_name, save_directory,ratioMin=0.01, ratioMax=2.0, setStats=False,legx1=0.7,legy1=0.7,legx2=0.9,legy2=0.9, clear_legend=True, LogX=False, LogY=False):
     # Create a canvas
@@ -540,7 +549,7 @@ def plot_TH1_ratios_with_legend(histograms, numerators, denominators, ratioNames
     histograms[0].SetTitle(canvas_name)
 
     #-------------Ratio---------------#
-    
+
     ratio_plots = []
     bot.cd()
     for i, plot in enumerate(numerators):
@@ -557,7 +566,7 @@ def plot_TH1_ratios_with_legend(histograms, numerators, denominators, ratioNames
         numerator.Divide(denominator)
         numerator.SetLineColor(ratioColors[i])
         ratio_plots.append(numerator)
-        
+
     for i, plot in enumerate(ratio_plots):
         if i < 1:
             plot.Draw("ep")
@@ -578,4 +587,100 @@ def plot_TH1_ratios_with_legend(histograms, numerators, denominators, ratioNames
 
     # Clean up
     canvas.Close()
+
+def Make2DPlot(canvas_name, histo, xtitle="", ytitle="", ztitle="", insertText=[], zmin="", zmax="", outdir='.', save=False):
+    oFext = ".png"
+    if not os.path.exists(outdir):
+        os.mkdir(outdir)
+
+    can = r.TCanvas()
+    can.SetName('%s'%(canvas_name))
+    #can.SetTitle('%s'%(canvas_name))
+    can.SetRightMargin(0.2)
+
+    #histolist[ih].GetZaxis().SetRangeUser(zmin,zmax)
+    if xtitle:
+        histo.GetXaxis().SetTitle(xtitle)
+    histo.GetXaxis().SetTitleSize(
+            histo.GetXaxis().GetTitleSize()*0.7)
+    histo.GetXaxis().SetLabelSize(
+            histo.GetXaxis().GetLabelSize()*0.75)
+    histo.GetXaxis().SetTitleOffset(
+            histo.GetXaxis().GetTitleOffset()*0.8)
+
+    histo.GetYaxis().SetTitleSize(
+            histo.GetYaxis().GetTitleSize()*0.7)
+    histo.GetYaxis().SetLabelSize(
+            histo.GetYaxis().GetLabelSize()*0.75)
+    histo.GetYaxis().SetTitleOffset(
+            histo.GetYaxis().GetTitleOffset()*1.7)
+    if ytitle:
+        histo.GetYaxis().SetTitle(ytitle)
+
+    histo.Draw("colz")
+
+    InsertText(insertText)
+
+    if save:
+        can.SaveAs(outdir+"/"+name+oFext)
+    return deepcopy(can)
+
+def Make1DPlot(canvas_name, histo, title="",xtitle="", ytitle="", ztitle="", drawOptions = "", insertText=[], outdir='.', LogY=False,save=True):
+    oFext = ".png"
+    if not os.path.exists(outdir):
+        os.mkdir(outdir)
+
+    if title:
+        histo.SetTitle(title)
+
+    can = r.TCanvas('%s'%(canvas_name),'%s'%(canvas_name),2500,1440)
+    #can.SetName('%s'%(canvas_name))
+    #can.SetTitle('%s'%(canvas_name))
+    can.SetRightMargin(0.2)
+
+    #xmax = histo.GetBinLowEdge(histo.FindLastBinAbove(0))
+    #ymax = histo.GetMaximum()
+    #xmin = histo.GetBinLowEdge(histo.FindFirstBinAbove(0))
+    #ymin = histo.GetMinimum()
+    #if setymin:
+    #    ymin = set_ymin
+
+    if xtitle:
+        histo.GetXaxis().SetTitle(xtitle)
+    histo.GetXaxis().SetTitleSize(
+            histo.GetXaxis().GetTitleSize()*0.7)
+    histo.GetXaxis().SetLabelSize(
+            histo.GetXaxis().GetLabelSize()*0.75)
+    histo.GetXaxis().SetTitleOffset(
+            histo.GetXaxis().GetTitleOffset()*0.8)
+
+    if ytitle:
+        histo.GetYaxis().SetTitle(ytitle)
+    histo.GetYaxis().SetTitleSize(
+            histo.GetYaxis().GetTitleSize()*0.7)
+    histo.GetYaxis().SetLabelSize(
+            histo.GetYaxis().GetLabelSize()*0.75)
+    histo.GetYaxis().SetTitleOffset(
+            histo.GetYaxis().GetTitleOffset()*1.7)
+
+
+
+
+    histo.Draw("%s"%(drawOptions))
+
+    if LogY:
+        canvas.SetLogy(1)
+
+    InsertText(insertText)
+
+    if save:
+        can.SaveAs(outdir+"/"+canvas_name+oFext)
+    return deepcopy(can)
+
+def saveCanvasesToPDF(canvases=[], pdf_name='my_canvases.pdf'):
+    outfile = r.TFile('%s'%(pdf_name),"RECREATE")
+    for canvas in canvases:
+        canvas.Print('%s'%(pdf_name))
+    outfile.Close()
+
 
